@@ -1,0 +1,8 @@
+USE jiya1;
+
+CREATE TABLE BankAccounts (
+    AccountNumber INT PRIMARY KEY,
+    AccountHolderName NVARCHAR(100),
+    AccountType NVARCHAR(50),
+    Balance float
+);
