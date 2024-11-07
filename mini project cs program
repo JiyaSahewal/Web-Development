@@ -1,0 +1,177 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Data.SqlClient;
+
+    class Bank
+    {
+        string connectionString = @"Server=(localdb)\MSSQLLocalDB;Database=jiya1;Integrated Security=True";
+        
+        private int accountNumber;
+        private string accountHolderName;
+        private string accountType;
+        private decimal balance;
+
+        public Bank(int accNo, string name, string accType, decimal initialBalance)
+        {
+            accountNumber = accNo;
+            accountHolderName = name;
+            accountType = accType;
+            balance = initialBalance;
+
+            // Insert account details into the database when creating a new Bank object
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "INSERT INTO BankAccounts (AccountNumber, AccountHolderName, AccountType, Balance) VALUES (@AccountNumber, @Name, @AccountType, @Balance)";
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@AccountNumber", accountNumber);
+                    cmd.Parameters.AddWithValue("@Name", accountHolderName);
+                    cmd.Parameters.AddWithValue("@AccountType", accountType);
+                    cmd.Parameters.AddWithValue("@Balance", balance);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void Deposit()
+        {
+            Console.Write("Enter Deposit Amount: ");
+            if (decimal.TryParse(Console.ReadLine(), out decimal depositAmount) && depositAmount > 0)
+            {
+                balance += depositAmount;
+
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string query = "UPDATE BankAccounts SET Balance = Balance + @DepositAmount WHERE AccountNumber = @AccountNumber";
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@DepositAmount", depositAmount);
+                        cmd.Parameters.AddWithValue("@AccountNumber", accountNumber);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                Console.WriteLine("Amount deposited successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Invalid deposit amount.");
+            }
+        }
+
+        public void Withdraw()
+        {
+            Console.Write("Enter Withdraw Amount: ");
+            if (decimal.TryParse(Console.ReadLine(), out decimal withdrawAmount) && withdrawAmount > 0)
+            {
+                if (withdrawAmount > balance)
+                {
+                    Console.WriteLine("Insufficient balance. Cannot withdraw amount.");
+                }
+                else
+                {
+                    balance -= withdrawAmount;
+
+                    using (SqlConnection conn = new SqlConnection(connectionString))
+                    {
+                        conn.Open();
+                        string query = "UPDATE BankAccounts SET Balance = Balance - @WithdrawAmount WHERE AccountNumber = @AccountNumber";
+                        using (SqlCommand cmd = new SqlCommand(query, conn))
+                        {
+                            cmd.Parameters.AddWithValue("@WithdrawAmount", withdrawAmount);
+                            cmd.Parameters.AddWithValue("@AccountNumber", accountNumber);
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+                    Console.WriteLine("Amount withdrawn successfully.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid withdrawal amount.");
+            }
+        }
+
+        public void Show()
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM BankAccounts WHERE AccountNumber = @AccountNumber";
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@AccountNumber", accountNumber);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            Console.WriteLine("\n************** Bank Transaction Management System ************");
+                            Console.WriteLine("Account No.: " + reader["AccountNumber"]);
+                            Console.WriteLine("Name: " + reader["AccountHolderName"]);
+                            Console.WriteLine("Account Type: " + reader["AccountType"]);
+                            Console.WriteLine("Balance: " + reader["Balance"]);
+                            Console.WriteLine("**************************************************************\n");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Account not found.");
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            
+                Console.WriteLine("Enter Account Details:");
+                Console.Write("Account No.: ");
+                int accNo = int.Parse(Console.ReadLine());
+                Console.Write("Name: ");
+                string name = Console.ReadLine();
+                Console.Write("Account Type: ");
+                string accType = Console.ReadLine();
+                Console.Write("Initial Balance: ");
+                decimal initialBalance = decimal.Parse(Console.ReadLine());
+
+                Bank account = new Bank(accNo, name, accType, initialBalance);
+                int choice;
+        do
+        {
+            Console.WriteLine("\nChoose an option:");
+            Console.WriteLine("1. Deposit\n2. Withdraw\n3. Show Account Details\n4. Exit");
+            Console.Write("Enter your choice: ");
+            if (int.TryParse(Console.ReadLine(), out choice))
+            {
+                switch (choice)
+                {
+                    case 1:
+                        account.Deposit();
+                        break;
+                    case 2:
+                        account.Withdraw();
+                        break;
+                    case 3:
+                        account.Show();
+                        break;
+                    case 4:
+                        Console.WriteLine("Exiting program.");
+                        break;
+                    default:
+                        Console.WriteLine("Invalid choice. Please try again.");
+                        break;
+                }
+            }
+        } while (choice != 4);
+    }
+}
+
